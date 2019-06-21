@@ -1,48 +1,67 @@
 import cv2 as cv
 import imutils
 from imutils.video import VideoStream
-from Transform import Transform
+#from Transform import Transform
 from multiprocessing import Process, Queue
 import numpy as np
 import time
 import datetime
+import sys
 
 class Stitching(Process):
+
     def __init__(self,q,dst):
         super(Stitching,self).__init__()
         self.q1 = q[0]
         self.q2 = q[1]
         self.dst1 = dst[0]
         self.dst2 = dst[1]
+
     def run(self):
         #images = ()
-        while(1):
-            try:
-                img1 = self.q1.get(); x = 0
-                img2 = self.q2.get(); x = 1
-            except LookupError: #??
-                break
+         while 1:   #TODO: this
+            while 1:
+                """
+                try:
+                    x = 0; img1 = self.q1.get()
+                    x = 1; img2 = self.q2.get()
+                except ...
+                """
+                if !(self.q1.empty()):
+                    img1 = self.q1.get()
+             try:
+                    img1 = ; x = 0
+                    img2 = self.q2.get(); x = 1
+                    #img1 = self.q1.get()
+                    #img2 = self.q2.get()
+                    img1_ = self.Transform(img1[0], self.dst1)
+                    img2_ = self.Transform(img2[0], self.dst2)
+                    cv.imwrite('/home/student/more_space/stitch/holst_%s.jpg' % time.time(),img1_+img2_)
+                    #print(111111111111111111, file=sys.stderr)
+             except LookupError: #??
+                 break
         #img2 = q2.get()
-        img1 = self.Transform(img1[0])
-        img2 = self.Transform(img2[0])
-        cv.imwrite('holst.jpg',img1+img2)
-    def Transform(self, img):
+
+    def Transform(self, img, dst):
         src = np.array([
         [0, 0],
         [3008, 0],
         [3008, 3008],
         [0, 3008]], dtype = "float32")
-        M = cv2.getPerspectiveTransform(src, self.dst)
-        warped = cv2.warpPerspective(img, M, (5599, 4208))
+        M = cv.getPerspectiveTransform(src, dst)
+        warped = cv.warpPerspective(img, M, (5599, 4208))
         return warped
 
+
 class VideoReader(Process):
+
     def __init__(self, ip, q):
         super(VideoReader, self).__init__()
-        #self.ip = "rtsp://admin:admin@" + ip + ":554/ch01/0"
-        self.ip = ip
+        self.ip = "rtsp://admin:admin@" + ip + ":554/ch01/0"
+        #self.ip = ip
         #self.dst = dst
         self.stream = VideoStream(self.ip).start()
+
     def run(self):
         while(1):
             frame = self.stream.read()
@@ -115,18 +134,16 @@ COORDS = (Cam169coord, Cam168coord)
 Q = []
 for ip in IP:
     q = Queue()
-    #VideoReader(ip, q).start()
-    p = VideoReader(ip, q)
-    jobs.append(p)
-    p.start()
+    VideoReader(ip, q).start()
+    #p = VideoReader(ip, q)
+    #jobs.append(p)
+    #p.start()
     Q += [q]
 
-#Stitching(Q, COORDS).start()
-sp = Stitching(Q, COORDS)
-jobs.append(sp)
-sp.start()
-for job in jobs:
-    job.join()
+Stitching(Q, COORDS).start()
+#sp = Stitching(Q, COORDS)
+
+
 
 while (1):
     time.sleep(1)
