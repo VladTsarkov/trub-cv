@@ -8,11 +8,23 @@ import time
 import datetime
 
 class Stitching(Process):
-    def __init__(self,q1,q2):
+    def __init__(self,q,dst):
         super(Stitching,self).__init__()
+        self.q1 = q[0]
+        self.q2 = q[1]
+        self.dst1 = dst[0]
+        self.dst2 = dst[1]
     def run(self):
-        img1 = q1.get()
-        img2 = q2.get()
+        #images = ()
+        while(1):
+            try:
+                img1 = self.q1.get(); x = 0
+                img2 = self.q2.get(); x = 1
+            except LookupError: #??
+                break
+        #img2 = q2.get()
+        img1 = self.Transform(img1[0])
+        img2 = self.Transform(img2[0])
         cv.imwrite('holst.jpg',img1+img2)
     def Transform(self, img):
         src = np.array([
@@ -24,11 +36,12 @@ class Stitching(Process):
         warped = cv2.warpPerspective(img, M, (5599, 4208))
         return warped
 
-class VideReader(Process):
-    def __init__(self, ip, dst):
-        super(VideReader, self).__init__()
-        self.ip = "rtsp://admin:admin@" + ip + ":554/ch01/0"
-        self.dst = dst
+class VideoReader(Process):
+    def __init__(self, ip, q):
+        super(VideoReader, self).__init__()
+        #self.ip = "rtsp://admin:admin@" + ip + ":554/ch01/0"
+        self.ip = ip
+        #self.dst = dst
         self.stream = VideoStream(self.ip).start()
     def run(self):
         while(1):
@@ -38,6 +51,7 @@ class VideReader(Process):
             q.put(t)
             #img = self.Transform(frame)
             cv.waitKey(1)
+
 """
     def Transform(self, img):
         src = np.array([
@@ -82,7 +96,7 @@ class VideoReader:
             cv.waitKey(1)
 """
 
-"""
+
 Cam168coord = np.array([
 [2844,1252],
 [5500,1044],
@@ -93,15 +107,38 @@ Cam169coord = np.array([
 [3408,1131],
 [3270,3588],
 [188,4200]], dtype = "float32")
-t1 = ("192.168.1.169","192.168.1.168")
-t2 = (Cam169coord, Cam168coord)
-p = ProcessVideReader(t1,t2)
-p.start()
-p.join()
-"""
 
-time = datetime.datetime.now().time()
-print(time)
+jobs = []
+IP = ("192.168.1.169","192.168.1.168")
+COORDS = (Cam169coord, Cam168coord)
+#p = VideoReader(t1,t2)
+Q = []
+for ip in IP:
+    q = Queue()
+    #VideoReader(ip, q).start()
+    p = VideoReader(ip, q)
+    jobs.append(p)
+    p.start()
+    Q += [q]
+
+#Stitching(Q, COORDS).start()
+sp = Stitching(Q, COORDS)
+jobs.append(sp)
+sp.start()
+for job in jobs:
+    job.join()
+
+while (1):
+    time.sleep(1)
+
+# cam1Q = Queue()
+# cam2Q = Queue()
+# stitchQ = Queue()
+# p = VideoReader("192.168.1.169", cam1Q)
+# p = VideoReader2("192.168.1.168", cam2Q)
+
+#p.start()
+#p.join()
 
 """
 proc = []
