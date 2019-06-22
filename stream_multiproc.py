@@ -1,4 +1,5 @@
 import cv2 as cv
+# import cv
 import imutils
 from imutils.video import VideoStream
 #from Transform import Transform
@@ -20,26 +21,14 @@ class Stitching(Process):
     def run(self):
         #images = ()
          while 1:   #TODO: this
-            while 1:
-                """
-                try:
-                    x = 0; img1 = self.q1.get()
-                    x = 1; img2 = self.q2.get()
-                except ...
-                """
-                if !(self.q1.empty()):
-                    img1 = self.q1.get()
-             try:
-                    img1 = ; x = 0
-                    img2 = self.q2.get(); x = 1
-                    #img1 = self.q1.get()
-                    #img2 = self.q2.get()
-                    img1_ = self.Transform(img1[0], self.dst1)
-                    img2_ = self.Transform(img2[0], self.dst2)
-                    cv.imwrite('/home/student/more_space/stitch/holst_%s.jpg' % time.time(),img1_+img2_)
-                    #print(111111111111111111, file=sys.stderr)
-             except LookupError: #??
-                 break
+            img1 = self.q1.get()
+            img2 = self.q2.get();
+            #img1 = self.q1.get()
+            #img2 = self.q2.get()
+            img1_ = self.Transform(img1[0], self.dst1)
+            img2_ = self.Transform(img2[0], self.dst2)
+            cv.imwrite('/home/student/more_space/stitch/holst_%s.jpg' % time.time(),img1_+img2_)
+            #print(111111111111111111, file=sys.stderr)
         #img2 = q2.get()
 
     def Transform(self, img, dst):
