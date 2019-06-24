@@ -6,6 +6,16 @@ def Transform(img, x1,y1,x2,y2,x3,y3,x4,y4):
     [x2,y2],
     [x3,y3],
     [x4,y4]], dtype = "float32")
+    
+    src = np.array([
+    [0, 0],
+    [480, 0],
+    [480, 480],
+    [0, 480]], dtype = "float32")
+    M = cv2.getPerspectiveTransform(src, dst)
+    #warped = cv2.warpPerspective(img, M, (maxWidth, maxHeight))
+    warped = cv2.warpPerspective(img, M, (893, 671))
+    """
     src = np.array([
     [0, 0],
     [3008, 0],
@@ -14,6 +24,7 @@ def Transform(img, x1,y1,x2,y2,x3,y3,x4,y4):
     M = cv2.getPerspectiveTransform(src, dst)
     #warped = cv2.warpPerspective(img, M, (maxWidth, maxHeight))
     warped = cv2.warpPerspective(img, M, (5599, 4208))
+    """
     return warped
     #cv2.imwrite('holst.jpg',warped)
 
