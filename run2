@@ -1,0 +1,5 @@
+ffmpeg -i rtsp://admin:admin@192.168.1.168:554/ch01/1 \
+       -filter_complex "nullsrc=size=720x720, format=yuv420p [base]; \
+          [0:v] format=pix_fmts=yuva420p, setpts=PTS-STARTPTS, scale=720x720 [left]; \
+          [base][left] overlay=shortest=1,format=yuv420p" \
+       -f v4l2 /dev/video1
