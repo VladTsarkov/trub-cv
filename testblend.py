@@ -1,6 +1,9 @@
-import bge
+import bge, bgl
+#import numpy as np
 import cv2 as cv
 import datetime
+
+from PIL import Image, ImageFont, ImageDraw
 #print(111)
 
 scene = bge.logic.getCurrentScene()
@@ -12,6 +15,7 @@ sens = o1.sensors["Keyboard"]
 camera = scene.objects["Camera"]
 text = scene.objects["Text"]
 textHelp = scene.objects["TextHelp"]
+
 #text.visible = False
 if not hasattr(bge.logic, 'video_a'):
     #for o, im, v in [(o1, 'IMin1.png', '/home/student/trub-cv/img/out.avi'), (o2, 'IMin2.png', '/home/student/trub-cv/img/out2.avi')]:
@@ -33,12 +37,12 @@ if not hasattr(bge.logic, 'video_b'):
     bge.logic.video_b.source.flip = False
     bge.logic.video_b.source.play()
 
-#print(bge.logic.video_a.source.preseek) # 4TO ETO?
 text.text = "t=%s\nh - помощь " % str(datetime.datetime.now().time())
 textHelp.text = "WASD - передвижение\nSpace - пауза\nB - воспроизведение\nR - рестарт\nL"\
 +" - ускорение\nK - обычная скорость\nLeftArrow - кручение сферы против\n"\
 +"                  часовой стрелки\nRightArrow - по часовой\n"\
 +"V - приближение"
+
 bge.logic.video_a.refresh(True)
 bge.logic.video_b.refresh(True)
 for key,status in sens.events:
@@ -46,17 +50,14 @@ for key,status in sens.events:
         if key == bge.events.SPACEKEY: # key "spacebar" for pause
             bge.logic.video_a.source.pause()
             bge.logic.video_b.source.pause()
-            textHelp.visible=False
         if key == bge.events.BKEY: # key "B" for unpause
             bge.logic.video_a.source.play()
             bge.logic.video_b.source.play()
-            textHelp.visible=False
         if key == bge.events.RKEY: # key "r" for restart video
             bge.logic.video_a.source.stop()
             bge.logic.video_b.source.stop()
             bge.logic.video_a.source.play()
             bge.logic.video_b.source.play()
-            textHelp.visible=False
         if key == bge.events.LKEY: # key ">" for upspeed video. every press the button +1 speed
             bge.logic.video_a.source.pause()
             bge.logic.video_b.source.pause()
@@ -64,7 +65,6 @@ for key,status in sens.events:
             bge.logic.video_b.source.framerate += 1.
             bge.logic.video_a.source.play()
             bge.logic.video_b.source.play()
-            textHelp.visible=False
         if key == bge.events.KKEY: # key "<" for normal speed
             bge.logic.video_a.source.pause()
             bge.logic.video_b.source.pause()
@@ -72,7 +72,6 @@ for key,status in sens.events:
             bge.logic.video_b.source.framerate = 1.
             bge.logic.video_a.source.play()
             bge.logic.video_b.source.play()
-            textHelp.visible=False
         if key == bge.events.HKEY: # key "h" for help
             if textHelp.get('helper') == True:
                 textHelp.visible=False
@@ -85,4 +84,5 @@ for key,status in sens.events:
                 camera.fov-=5
             else:
                 camera.fov=90
-            text.position[1] = 271.504/camera.fov + 0.29 #+ 6
+            text.localPosition[1] = 762.155/camera.fov - 2.14 #+ 6
+            textHelp.localPosition[1] = 762.155/camera.fov - 2.14 #+ 6
