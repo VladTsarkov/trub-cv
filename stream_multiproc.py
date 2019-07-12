@@ -101,7 +101,7 @@ class VideoReader(Process):
     #def __init__(self, ip, q, qw):
     def __init__(self, ip, q):
         super(VideoReader, self).__init__()
-        self.ip = "rtsp://admin:admin@" + ip + ":554/ch01/2"
+        self.ip = "rtsp://admin:admin@" + ip + ":554/ch01/1"
         #self.ip = "rtsp://admin:admin@" + ip + ":554/ch01/0"
         self.q = q
         #self.ip = ip
@@ -119,6 +119,7 @@ class VideoReader(Process):
         while(1):
             #if (self.qw.get()=="False"):
             #    break
+            
             #frame = self.stream.read()
             #frame = stream.read()
             #print(222222, file=sys.stderr)
