@@ -23,6 +23,10 @@ class Lidar():
         self.dent_max = dent_max
         self.depth = 0
         self.step_depth = step_depth
+        self.r_previous = ''
+
+        self.temps1 = []
+        self.temps2 = []
 
     def draw(self,x,y,color=0):
         cv.circle(self.img,(int(x+400),int(y+400)), 2, (0,0,color),-1)
@@ -88,13 +92,35 @@ class Lidar():
         self.defazification(fi_data)
 
     def defazification(self, fi):
-        r1 = min(fi[0][0],fi[1][0],fi[2][0],fi[3][1],fi[4][0]) # Circle
-        r2 = min(fi[0][1],fi[1][1],fi[2][1],fi[3][2],fi[4][1]) # dent
-        r3 = min(fi[0][1],fi[1][1],fi[2][0],fi[3][1],fi[4][1]) # Ellipse
-        r4 = min(fi[0][0],fi[1][0],fi[2][0],fi[3][3],fi[4][1]) # Hydrate
-        r5 = min(fi[0][0],fi[1][0],fi[2][0],max(fi[3][0],fi[3][3]),fi[4][1]) # Gaufrer
-        print(f"\nОтветы правил circle={r1}, dent={r2}, elipse={r3}, hydrate={r4}, gaufrer={r5}")
-        print(f"ANS = {max(r1,r2,r3,r4,r5)}\n")
+        r = dict([('circle',0),('dent',0),('ellipse',0),('hydrate',0),('gaufrer',0)])
+        r['circle'] = min(fi[0][0],fi[1][0],fi[2][0],fi[3][1],fi[4][0]) # Circle
+        r['dent'] = min(fi[0][1],fi[1][1],fi[2][1],fi[3][2],fi[4][1]) # dent
+        r['ellipse'] = min(fi[0][1],fi[1][1],fi[2][0],fi[3][1],fi[4][1]) # Ellipse
+        r['hydrate'] = min(fi[0][0],fi[1][0],fi[2][0],fi[3][3],fi[4][1]) # Hydrate
+        r['gaufrer'] = min(fi[0][0],fi[1][0],fi[2][0],max(fi[3][0],fi[3][3]),fi[4][1]) # Gaufrer
+        #print(f"\nОтветы правил circle={r1}, dent={r2}, elipse={r3}, hydrate={r4}, gaufrer={r5}")
+        #print(f"{r4==r5}")
+        max1, max1s = r['circle'],'circle'
+        print("\n")
+        for key, value in r.items():
+            print(f"Ответ правила {key} = {value}")
+            #max1, max1s = (value,key) if value>max1 else pass
+            if value>max1:
+                max1, max1s = value, key
+        #print(f"ANS = {max(r1,r2,r3,r4,r5)}\n")
+        #print(f"ANS = {max1s,r[max1s]}")
+        self.temps1.append(max1s) #TODO Разобраться с self.r_previous, ибо оно ошибочно!!!
+        self.temps2.append(max1s)
+        if len(self.r_previous) == 0:
+            self.r_previous = max1s
+        if len(self.temps1) >= 2:
+            print(f"SHOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO {self.r_previous,self.temps2[-2]}")
+        if self.r_previous == 'hydrate' and max1s == 'gaufrer':
+            print(f"DA?????????????????????????????????????????????????? {self.r_previous, max1s, self.temps2[-2]}")
+            self.r_previous = max1s
+            self.temps2[-2] = max1s
+
+        print(f"ANS = {max1s,max1}")
         return 0
 
     def correlation(self, list_data, rds):
@@ -417,6 +443,8 @@ res.data_gen_gaufrer(circles = 6)
 #res.data_gen_ideal(circles = 1)
 #print(res.list_data)
 #res.correlation()
+print(f"Ответы обычные {res.temps1}")
+print(f"Ответы исправленные {res.temps2}")
 '''
 res.data_gen_dent(circles = 3)
 res.data_gen(circles = 3)
