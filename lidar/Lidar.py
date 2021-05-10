@@ -7,6 +7,7 @@ import math
 import random
 #import pandas as pd
 from math import sin,cos,radians
+import pandas as pd
 
 class Lidar():
     def __init__(self,circles,step_angl,rds,err_rds,dent_threshold,dent_max,step_depth):
@@ -25,8 +26,13 @@ class Lidar():
         self.step_depth = step_depth
         self.r_previous = ''
 
-        self.temps1 = []
-        self.temps2 = []
+        self.initial_data = []
+        self.intermediate_ans = []
+        self.final_ans = []
+        self.params = list([[],[],[],[],[]])
+        self.fi = list([[],[],[],[],[]])
+        self.trans = {'ellipse':'эллипс','ideal_circle':'идеальная окружность','circle':'окружность',
+        'dent':'вмятина','gaufrer':'гофр','hydrate':'гидрат'}
 
     def draw(self,x,y,color=0):
         cv.circle(self.img,(int(x+400),int(y+400)), 2, (0,0,color),-1)
@@ -44,6 +50,39 @@ class Lidar():
 
     def find_R_in_0(self,x,y):
         return math.sqrt(x**2+y**2)
+
+    def translate(self,b):
+        temp = []
+        if b == 'init':
+            for i in self.initial_data:
+                temp.append(self.trans[i])
+        if b == 'inter':
+            for i in self.intermediate_ans:
+                temp.append(self.trans[i])
+        if b == 'final':
+            for i in self.final_ans:
+                temp.append(self.trans[i])
+        return temp
+
+    def print_answers(self):
+        #data = [self.initial_data,self.intermediate_ans,self.final_ans,self.mo,self.moe,self.cnt_in,self.mic,self.ex]
+        for i in range(len(self.fi)):
+            for j in range(len(self.fi[i])):
+                for k in range(len(self.fi[i][j])):
+                    #print(k)
+                    self.fi[i][j][k] = round(self.fi[i][j][k],4)
+        data = [self.translate('init'),self.translate('inter'),self.translate('final'),self.params[0],self.params[1],self.params[2],
+                self.params[3],self.params[4],self.fi[0],self.fi[1],self.fi[2],self.fi[3],self.fi[4]]
+        names = ['Исходные данные','Промежуточный результат','Результат','mo',
+        'moe','cnt','mic','ex',
+        'ФП mo','ФП moe','ФП cnt','ФП mic','ФП ex']
+        df = pd.DataFrame(data,index=names).T
+        pd.option_context('display.max_rows', None, 'display.max_columns', None)
+        #df.insert(loc=0,column='init',value=self.initial_data)
+        #df['Mat'].round(2)
+        print('mo - Мат. ожидание по окружности\nmoe - Мат. ожидание по эллипсу\ncnt - Количество точек внутри идеальной трубы',
+        '\nmic - Срденее отклонение от идеальной трубы\nex - Экцентриситет\nФП - Функция принадлежности')
+        print(df)
 
     def faz_mo(self,x):
         fia = (15-x)/(15-5) if x>= 5 and x<=15 else 1 if x>=0 and x<5 else 0
@@ -83,12 +122,15 @@ class Lidar():
         fi_moe_a, fi_moe_b = self.faz_moe(abs(moe))
         fi_cnt_a, fi_cnt_c, fi_cnt_d, fi_cnt_e = self.faz_cnt_in(cnt_in)
         fi_mic_a, fi_mic_b = self.faz_mic(mic)
-        print(f"Функция принадлежности по мат ожиданию круга {fi_mo_a,fi_mo_b}")
+        '''print(f"Функция принадлежности по мат ожиданию круга {fi_mo_a,fi_mo_b}")
         print(f"Функция принадлежности по экцентриситету {fi_ex_a,fi_ex_b}")
         print(f"Функция принадлежности по мат ожиданию эллипса {fi_moe_a,fi_moe_b}")
         print(f"Функция принадлежности по кол-ву точек внутри идеального круга {fi_cnt_a, fi_cnt_c, fi_cnt_d, fi_cnt_e}")
-        print(f"Функция принадлежности по среднему отклонению от идеальной трубы {fi_mic_a, fi_mic_b}")
+        print(f"Функция принадлежности по среднему отклонению от идеальной трубы {fi_mic_a, fi_mic_b}")'''
         fi_data = [[fi_mo_a,fi_mo_b],[fi_ex_a,fi_ex_b],[fi_moe_a,fi_moe_b],[fi_cnt_a,fi_cnt_c,fi_cnt_d,fi_cnt_e],[fi_mic_a,fi_mic_b]]
+        #fi_data = [(fi_mo_a,fi_mo_b),(fi_ex_a,fi_ex_b),(fi_moe_a,fi_moe_b),(fi_cnt_a,fi_cnt_c,fi_cnt_d,fi_cnt_e),(fi_mic_a,fi_mic_b)]
+        for i in range(len(fi_data)):
+            self.fi[i].append(fi_data[i])
         self.defazification(fi_data)
 
     def defazification(self, fi):
@@ -101,26 +143,23 @@ class Lidar():
         #print(f"\nОтветы правил circle={r1}, dent={r2}, elipse={r3}, hydrate={r4}, gaufrer={r5}")
         #print(f"{r4==r5}")
         max1, max1s = r['circle'],'circle'
-        print("\n")
+        #print("\n")
         for key, value in r.items():
-            print(f"Ответ правила {key} = {value}")
+            #print(f"Ответ правила {key} = {value}")
             #max1, max1s = (value,key) if value>max1 else pass
             if value>max1:
                 max1, max1s = value, key
         #print(f"ANS = {max(r1,r2,r3,r4,r5)}\n")
         #print(f"ANS = {max1s,r[max1s]}")
-        self.temps1.append(max1s) #TODO Разобраться с self.r_previous, ибо оно ошибочно!!!
-        self.temps2.append(max1s)
+        self.intermediate_ans.append(max1s) #TODO Разобраться с self.r_previous, ибо оно ошибочно!!!
+        self.final_ans.append(max1s)
         if len(self.r_previous) == 0:
             self.r_previous = max1s
-        if len(self.temps1) >= 2:
-            print(f"SHOOOOOOOOOOOOOOOOOOOOOOOOOOOOOOO {self.r_previous,self.temps2[-2]}")
         if self.r_previous == 'hydrate' and max1s == 'gaufrer':
-            print(f"DA?????????????????????????????????????????????????? {self.r_previous, max1s, self.temps2[-2]}")
-            self.r_previous = max1s
-            self.temps2[-2] = max1s
+            self.final_ans[-2] = max1s
+        self.r_previous = max1s
 
-        print(f"ANS = {max1s,max1}")
+        #print(f"ANS = {max1s,max1}")
         return 0
 
     def correlation(self, list_data, rds):
@@ -147,16 +186,19 @@ class Lidar():
             m_ic_sum += abs(temp-self.rds)
             #print(f"x={data[0]}, y={data[1]}, R={self.rds_mean}, raznica={raz}\n")
         mo, cnt_in, mic = sum/cnt, incount/cnt, m_ic_sum/cnt
-        print(f"По кругу max={max1}, min={min1}, Мат. Ожид={mo},\n",
-        f"кол-во точек внутри идеальной трубы(%):{cnt_in}\nСреднее отклонение от идеальной трубы = {mic}")
+        #print(f"По кругу max={max1}, min={min1}, Мат. Ожид={mo},\n",
+        #f"кол-во точек внутри идеальной трубы(%):{cnt_in}\nСреднее отклонение от идеальной трубы = {mic}")
         raz = 0
         sum = 0
         for data in list_data:
             raz = data[0]**2/a**2+data[1]**2/b**2-1
             sum += raz
         moe, ex = sum/cnt, math.sqrt(1-b**2/a**2)
-        print(f"По эллипсу a={a}, b={b}, Мат. Ожид={moe}",
-        f"\nExentricitet={ex}, C={a*math.sqrt(1-b**2/a**2)}\n")
+        #print(f"По эллипсу a={a}, b={b}, Мат. Ожид={moe}",
+        #f"\nExentricitet={ex}, C={a*math.sqrt(1-b**2/a**2)}\n")
+        temp = [mo,moe,cnt_in,mic,ex]
+        for i in range(len(temp)):
+            self.params[i].append(round(temp[i],2))
         self.fazification(mo,moe,cnt_in,mic,ex)
 
     """def data_from_json(self,jsn):
@@ -201,6 +243,7 @@ class Lidar():
             #print(f"i= {i} rds_hyd = {rds_hyd}")
             list_data = []
             rds_mean = 0
+            self.initial_data.append('gaufrer')
             while self.angl<=360:
                 temp_err = random.uniform(-self.err_rds,self.err_rds)
                 x = (rds2 + temp_err) * cos(radians(self.angl))
@@ -238,6 +281,7 @@ class Lidar():
             b = self.rds * (1-width_ellipse*(i+1)) if i < circles else self.rds * (1-width_ellipse*(circles*2-i-1))
             #print(f"i= {i} rds_hyd = {rds_hyd}")
             relips = 0
+            self.initial_data.append('ellipse')
             while self.angl<=360:
                 temp_err = random.uniform(-self.err_rds,self.err_rds)
                 rdsa = a + temp_err
@@ -268,13 +312,12 @@ class Lidar():
         self.angl = 0
         cnt = 0
         rds_hyd = self.rds
-        print(f"rds_hyd1 {rds_hyd}")
         width_hydrate = random.uniform(20,70)
         for i in range(circles*2):
             rds_hyd = rds_hyd-width_hydrate/circles if i < circles else rds_hyd+width_hydrate/circles
-            print(f"i= {i} rds_hyd = {rds_hyd}")
             rds_mean = 0
             list_data = []
+            self.initial_data.append('hydrate')
             while self.angl<=360:
                 temp_err = random.uniform(-self.err_rds,self.err_rds)
                 rds2 = rds_hyd + temp_err
@@ -309,7 +352,7 @@ class Lidar():
             cntr = 0
             rds_mean = 0
             list_data = []
-            print(f"angl from {angl_start_den} into {angl_end_den}")
+            self.initial_data.append('dent')
             while self.angl<=360:
                 temp_err = random.uniform(-self.err_rds,self.err_rds)
                 rds2 = self.rds + temp_err
@@ -362,6 +405,7 @@ class Lidar():
             #sr = 0
             temp = 0
             rds_mean = 0
+            self.initial_data.append('circle')
             while self.angl<=360:
                 temp_err = random.uniform(-self.err_rds,self.err_rds)
                 rds2 = self.rds + temp_err
@@ -380,8 +424,6 @@ class Lidar():
                 cnt += 1
                 temp += self.find_R_in_0(x,y)
             self.rds_mean /= cnt
-            print("sr raduis",self.rds_mean)
-            print(f"staroe R{rds_mean/cnt}, function R={temp/cnt}")
             self.correlation(list_data,rds_mean/cnt)
             #self.correlation_elip(list_data)
             cnt = 0
@@ -398,6 +440,7 @@ class Lidar():
         for i in range(circles):
             list_data = []
             rds_mean = 0
+            self.initial_data.append('ideal_circle')
             while self.angl<=360:
                 rds2 = self.rds
                 x = (rds2) * cos(radians(self.angl))  #+ 400
@@ -411,7 +454,6 @@ class Lidar():
                 self.angl+=self.step_angl
                 cnt += 1
             self.rds_mean /= cnt
-            print("sr raduis",self.rds_mean)
             self.correlation(list_data,rds_mean/cnt)
             #self.correlation_elip(list_data)
             cnt = 0
@@ -428,23 +470,22 @@ dent_threshold = 0.02 # трешхолд вмятины
 dent_max = 90 # маскимальная длина вмятины в градусах
 step_depth = 2 #шаг вмятины
 res = Lidar(circles,step_angl,rds,err_rds,dent_threshold,dent_max,step_depth)
-print('\nIDEAL CIRCLE\n')
+#print('\nIDEAL CIRCLE\n')
 res.data_gen_ideal(circles = 3)
-print('\nCIRCLE\n')
+#print('\nCIRCLE\n')
 res.data_gen(circles = 3)
-print('\nDENT\n')
+#print('\nDENT\n')
 res.data_gen_dent(circles = 6)
-print('\nELLIPSE\n')
+#print('\nELLIPSE\n')
 res.data_gen_ellipse(circles = 6)
-print('\nHYDRATE\n')
+#print('\nHYDRATE\n')
 res.data_gen_hydrate(circles = 6)
-print('\nGAUFRER\n')
+#print('\nGAUFRER\n')
 res.data_gen_gaufrer(circles = 6)
 #res.data_gen_ideal(circles = 1)
 #print(res.list_data)
 #res.correlation()
-print(f"Ответы обычные {res.temps1}")
-print(f"Ответы исправленные {res.temps2}")
+res.print_answers()
 '''
 res.data_gen_dent(circles = 3)
 res.data_gen(circles = 3)
